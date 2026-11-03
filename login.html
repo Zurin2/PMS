@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login – PMS Inventory System</title>
+    <link rel="stylesheet" href="public/css/style.css" />
+</head>
+<body class="login-page">
+    <div class="login-card">
+        <h1>PMS Inventory System</h1>
+        <p class="subtitle">ADS PMS Trading</p>
+
+        <form id="login-form" novalidate>
+            <div class="field">
+                <label for="username">Username</label>
+                <input id="username" name="username" type="text" autocomplete="username" required />
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required />
+            </div>
+            <p id="login-error" class="error-msg" aria-live="polite"></p>
+            <button type="submit" class="btn-primary">Sign In</button>
+        </form>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

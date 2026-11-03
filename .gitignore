@@ -1,0 +1,21 @@
+# Git ignore rules for PMS Inventory System
+
+# DB credentials - NEVER commit
+config/db.php
+
+# Shell test artifacts
+scripts/jar.txt
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log

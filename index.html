@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard – PMS Inventory System</title>
+    <link rel="stylesheet" href="public/css/style.css" />
+</head>
+<body>
+    <header class="topbar">
+        <h1>PMS Inventory &amp; Delivery System</h1>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="items.html">Items</a>
+            <a href="stock_in.html">Stock In</a>
+            <a href="deliveries.html">Deliveries</a>
+            <a href="customers.html">Customers</a>
+            <a href="reports.html">Reports</a>
+            <button id="btn-logout" class="btn-link">Logout</button>
+        </nav>
+    </header>
+
+    <main>
+        <section class="dashboard-summary">
+            <div class="card" id="card-low-stock">
+                <h2>Low Stock Items</h2>
+                <p id="low-stock-count">—</p>
+            </div>
+            <div class="card" id="card-outstanding">
+                <h2>Outstanding Balance</h2>
+                <p id="outstanding-amount">—</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Dashboard summary loader
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('btn-logout').addEventListener('click', logout);
+
+            try {
+                const lowStock = await API.get('reports.php?type=low_stock');
+                document.getElementById('low-stock-count').textContent = lowStock.length + ' item(s)';
+
+                const balances = await API.get('reports.php?type=delivery_balance');
+                const total = balances.reduce((s, d) => s + Number(d.balance), 0);
+                document.getElementById('outstanding-amount').textContent = '₱' + total.toFixed(2);
+            } catch (err) {
+                console.error('Dashboard load error:', err);
+            }
+        });
+    </script>
+</body>
+</html>
