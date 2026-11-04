@@ -1,65 +1,74 @@
 # PMS Inventory Tracking & Delivery Monitoring System
-# ADS PMS Trading – WMSU Project
+# ADS PMS Trading — WMSU Project
 
 ---
 
 ## Overview
-PHP/MySQL web application for tracking inventory and delivery monitoring for PMS Trading.
-Built for local deployment on XAMPP (PHP + MySQL).
+Zero-framework PHP/MySQL web application for inventory tracking and delivery monitoring
+for PMS School and Office Supplies Trading. Single-owner, single-branch, local deployment
+on XAMPP. Receipt export: printable PDF via browser print CSS (DOCX/PPTX deferred).
 
 ## Stack
 | Layer | Technology |
 | :--- | :--- |
-| Database | MySQL 8 (InnoDB, Views, Triggers) |
-| Backend | PHP 8+ (PDO, sessions, REST-style JSON API) |
+| Database | MariaDB/MySQL 8 (InnoDB, utf8mb4_unicode_ci, Views, Triggers) |
+| Backend | PHP 8+ (PDO prepared statements, sessions, REST-style JSON API) |
 | Frontend | Vanilla HTML5 / CSS3 / JavaScript (fetch API) |
-| Server | XAMPP (Apache + MySQL) |
+| Server | XAMPP (Apache + MySQL), `C:\xampp\htdocs\PMS` |
 
 ## Project Structure
 ```
-ADS PMS TRADING INVENTORY SYSTEM/
-├── sql/
-│   ├── 01_schema.sql       # Full database schema
-│   ├── 02_views.sql        # v_item_stock, v_stock_movement, v_delivery_balance
-│   ├── 03_triggers.sql     # Business rule triggers
-│   ├── 04_seed.sql         # Default categories + owner account
-│   └── 05_reports.sql      # Analytical queries
-├── config/
-│   └── db.php              # PDO singleton (keep out of Git)
-├── api/
-│   ├── _bootstrap.php      # Session, headers, helpers
-│   ├── auth.php            # Login / logout / me
-│   ├── items.php           # Inventory items CRUD
-│   ├── categories.php      # Category CRUD
-│   ├── stock_in.php        # Receive stock
-│   ├── deliveries.php      # Create & view deliveries
-│   ├── customers.php       # Customer (School/Office) CRUD
-│   ├── payments.php        # Record delivery payments
-│   └── reports.php         # Analytical reports endpoint
-├── js/
-│   ├── api.js              # Fetch wrapper
-│   ├── auth.js             # Login form handler
-│   └── items.js            # Items table renderer
-├── public/
-│   └── css/style.css       # Base stylesheet
+PMS/
+├── sql/                      # Database (already imported: pms_inventory)
+│   ├── 01_schema.sql         # 15-table schema (3NF/4NF, supertype/subtype)
+│   ├── 02_views.sql          # v_stock_movement, v_item_stock, v_delivery_balance
+│   ├── 03_triggers.sql       # 6 business-rule triggers (stock guard, overpay, office-only…)
+│   ├── 04_seed.sql           # Default categories + owner account
+│   └── 05_reports.sql        # Analytical queries
+├── config/db.php             # PDO singleton collation-pinned (utf8mb4_unicode_ci)
+├── api/                      # 13 JSON endpoints (see API_SPEC.md for the full contract)
+│   ├── _bootstrap.php        # Session, JSON responders, SQLSTATE->409 mapper
+│   ├── auth.php              # login / me / logout
+│   ├── items.php             # CRUD + archive + price history (triggers)
+│   ├── categories.php        # Category CRUD
+│   ├── customers.php         # customer + school/office subtype + contacts (transactional)
+│   ├── stock_in.php          # Stock receipts (+ delete guard via trigger)
+│   ├── stock_card.php        # Movement ledger with running balance
+│   ├── deliveries.php        # Atomic delivery transactions (DIRECT/BIDDING subtypes)
+│   ├── payments.php          # Payment recording (overpay guard)
+│   ├── adjustments.php       # Physical count variance records
+│   ├── dashboard.php         # KPI aggregates
+│   ├── reports.php           # matrix / summary / revenue periods
+│   └── receipt.php           # Printable HTML delivery receipt (auto window.print())
+├── css/app.css               # Full design system (single source of UI classes)
+├── js/                       # api.js (wb client), ui.js (shell/toasts/modals), per-page JS
 ├── scripts/
-│   └── api_tests.sh        # cURL smoke tests
-├── login.html              # Login page
-├── index.html              # Dashboard
-├── items.html              # Items management page
+│   ├── smoke.ps1             # 24-test live HTTP smoke suite (PowerShell + curl.exe)
+│   ├── _pw.php               # Temp owner-password helper used by smoke.ps1
+│   ├── api_tests.sh          # Legacy cURL tests (bash)
+│   └── verify.php            # Legacy verifier
+├── login.html                # Auth page
+├── dashboard.html            # Live KPIs + low stock
+├── items.html                # Inventory catalog & low-stock tags
+├── stock_in.html             # Restock logger
+├── stock_card.html           # Digital stock card ledger
+├── customers.html            # Schools/Offices directory (subtypes + contacts)
+├── deliveries.html           # Delivery log, balances, receipts
+├── delivery_new.html         # Order fulfilment (Direct/Bidding)
+├── payments.html             # Collection entry (unpaid delivery focus)
+├── count.html                # Physical count / variance adjustments
+├── reports.html              # Matrix & revenue analytics
+├── index.html                # Entry redirect -> dashboard
 └── README.md
 ```
 
 ## Setup Instructions
 
-### 1. Install XAMPP
-Download from https://www.apachefriends.org and start **Apache** and **MySQL**.
+### 1. XAMPP
+Start **Apache** and **MySQL** from the XAMPP control panel.
 
-### 2. Deploy files
-Copy this folder to: `C:\xampp\htdocs\pms\`
-
-### 3. Load the database
-Open phpMyAdmin (`http://localhost/phpmyadmin`) and run SQL files in order:
+### 2. Load the database (only if `pms_inventory` does not exist)
+phpMyAdmin (`http://localhost/phpmyadmin`), run in order:
 ```
 sql/01_schema.sql
 sql/02_views.sql
@@ -67,32 +76,32 @@ sql/03_triggers.sql
 sql/04_seed.sql
 ```
 
-### 4. Set the owner password
-Run in phpMyAdmin or terminal:
-```php
-php -r "echo password_hash('your_password_here', PASSWORD_DEFAULT);"
+### 3. Owner password
+The system is single-user (row `owner` in `user_account`, `CHECK (user_id = 1)`).
+Generate a bcrypt hash and update the row:
 ```
-Then update `sql/04_seed.sql` with the generated hash before importing.
+php -r "require 'C:/xampp/htdocs/PMS/config/db.php'; db()->prepare('UPDATE user_account SET password_hash=? WHERE user_id=1')->execute([password_hash('YOUR_NEW_PASSWORD', PASSWORD_DEFAULT)]);"
+```
 
-### 5. Access the system
-Open your browser: `http://localhost/pms/login.html`
+### 4. Access
+```
+http://localhost/PMS/login.html
+```
 
----
+## Verification
+Run the live smoke suite (expects Apache + MySQL running):
+```
+powershell -ExecutionPolicy Bypass -File C:\xampp\htdocs\PMS\scripts\smoke.ps1
+```
+24 checks: auth (401/200/me), item CRUD + duplicate 409 + price history trigger,
+stock-in, stock card running balances, insufficient stock 409, delivery transaction,
+overpay 409, payment, cancel guard 409, physical count adjustment, dashboard,
+reports (matrix/summary), receipt HTML, category delete restriction 409.
+The suite temporarily swaps the owner password and restores the original hash afterwards.
 
-## API Reference
-
-| Endpoint | Methods | Description |
-| :--- | :--- | :--- |
-| `api/auth.php` | POST (login), GET (logout, me) | Authentication |
-| `api/items.php` | GET, POST, PUT, DELETE | Inventory items |
-| `api/categories.php` | GET, POST, PUT, DELETE | Item categories |
-| `api/stock_in.php` | GET, POST, DELETE | Stock receipts |
-| `api/deliveries.php` | GET, POST, PUT | Deliveries |
-| `api/customers.php` | GET, POST, DELETE | Customers |
-| `api/payments.php` | GET, POST | Delivery payments |
-| `api/reports.php` | GET | Inventory movement, balance, low stock |
+Stock invariant enforced end-to-end: `Beginning + In − Out + Adj == Ending`.
 
 ## Security Notes
-- `config/db.php` must be excluded from any public repository (`.gitignore`).
-- Replace the default `root` user with a limited DB user before any non-local deployment.
-- Passwords are stored as bcrypt hashes via PHP `password_hash()`.
+- `config/db.php` is excluded from Git (`.gitignore`).
+- Replace `root` with a limited DB user before any non-local deployment.
+- Passwords are bcrypt via `password_hash()` / `password_verify()`.

@@ -1,60 +1,100 @@
 <?php
-// =============================================================
-// PMS Inventory Tracking & Delivery Monitoring System
-// File: api/stock_in.php
-// Description: Manage stock-in records (receiving inventory)
-// =============================================================
-
-require __DIR__ . '/_bootstrap.php';
+declare(strict_types=1);
+require_once __DIR__ . '/_bootstrap.php';
 require_login();
 
 $pdo = db();
-$id  = (int) ($_GET['id'] ?? 0);
+$method = $_SERVER['REQUEST_METHOD'];
 
-try {
-    switch ($_SERVER['REQUEST_METHOD']) {
+/* ---------- GET ---------- */
+if ($method === 'GET') {
+    $sql = 'SELECT si.stock_in_id, si.item_id, i.item_code, i.name, si.quantity,
+                   si.date_received, si.remarks
+              FROM stock_in si
+              JOIN item i ON i.item_id = si.item_id
+             WHERE 1=1';
+    $args = [];
 
-        case 'GET':
-            if ($id) {
-                $st = $pdo->prepare(
-                    'SELECT si.*, i.name AS item_name, i.unit
-                     FROM stock_in si JOIN item i ON i.item_id = si.item_id
-                     WHERE si.stock_in_id = ?'
-                );
-                $st->execute([$id]);
-                $row = $st->fetch();
-                $row ? respond(200, $row) : respond(404, ['error' => 'Record not found']);
-            }
-            respond(200, $pdo->query(
-                'SELECT si.*, i.name AS item_name, i.unit
-                 FROM stock_in si JOIN item i ON i.item_id = si.item_id
-                 ORDER BY si.date_received DESC'
-            )->fetchAll());
-
-        case 'POST':
-            $b = input();
-            need($b, ['item_id', 'quantity', 'date_received']);
-            $st = $pdo->prepare(
-                'INSERT INTO stock_in (item_id, quantity, remarks, date_received)
-                 VALUES (?, ?, ?, ?)'
-            );
-            $st->execute([
-                (int) $b['item_id'],
-                (int) $b['quantity'],
-                $b['remarks'] ?? null,
-                $b['date_received'],
-            ]);
-            respond(201, ['stock_in_id' => (int) $pdo->lastInsertId()]);
-
-        case 'DELETE':
-            if (!$id) respond(400, ['error' => 'id required']);
-            // Trigger trg_si_delete_guard prevents negative SOH
-            $pdo->prepare('DELETE FROM stock_in WHERE stock_in_id = ?')->execute([$id]);
-            respond(200, ['deleted' => true]);
-
-        default:
-            respond(405, ['error' => 'Method not allowed']);
+    $item_id = int_param($_GET, 'item_id');
+    if ($item_id > 0) {
+        $sql .= ' AND si.item_id = ?';
+        $args[] = $item_id;
     }
-} catch (PDOException $e) {
-    fail($e);
+
+    $from = str_param($_GET, 'from');
+    if ($from !== '') {
+        $sql .= ' AND si.date_received >= ?';
+        $args[] = $from;
+    }
+    $to = str_param($_GET, 'to');
+    if ($to !== '') {
+        $sql .= ' AND si.date_received <= ?';
+        $args[] = $to;
+    }
+
+    $sql .= ' ORDER BY si.date_received DESC, si.stock_in_id DESC';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($args);
+
+    $out = [];
+    foreach ($stmt->fetchAll() as $r) {
+        $r['stock_in_id'] = (int)$r['stock_in_id'];
+        $r['item_id'] = (int)$r['item_id'];
+        $r['quantity'] = (int)$r['quantity'];
+        $out[] = $r;
+    }
+    json_ok($out);
 }
+
+/* ---------- POST ---------- */
+if ($method === 'POST') {
+    $b = body();
+    $item_id = int_param($b, 'item_id');
+    $quantity = int_param($b, 'quantity');
+    $date_received = str_param($b, 'date_received');
+    $remarks = str_param($b, 'remarks') ?: null;
+
+    if ($item_id <= 0) {
+        json_err('item_id is required', 400);
+    }
+    if ($quantity <= 0) {
+        json_err('quantity must be greater than 0', 400);
+    }
+    if ($date_received === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_received)) {
+        json_err('date_received must be a YYYY-MM-DD date', 400);
+    }
+
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM item WHERE item_id = ?');
+    $stmt->execute([$item_id]);
+    if ((int)$stmt->fetchColumn() === 0) {
+        json_err('Item not found', 400);
+    }
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO stock_in (item_id, quantity, remarks, date_received) VALUES (?, ?, ?, ?)'
+    );
+    $stmt->execute([$item_id, $quantity, $remarks, $date_received]);
+
+    json_ok(['stock_in_id' => (int)$pdo->lastInsertId()], 201);
+}
+
+/* ---------- DELETE ---------- */
+if ($method === 'DELETE') {
+    $id = int_param($_GET, 'id');
+    if ($id <= 0) {
+        json_err('id is required', 400);
+    }
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM stock_in WHERE stock_in_id = ?');
+    $stmt->execute([$id]);
+    if ((int)$stmt->fetchColumn() === 0) {
+        json_err('Stock-in receipt not found', 404);
+    }
+
+    // trg_si_delete_guard SIGNALs 45000 when stock would go negative -> global handler maps to 409.
+    $stmt = $pdo->prepare('DELETE FROM stock_in WHERE stock_in_id = ?');
+    $stmt->execute([$id]);
+
+    json_ok(['ok' => true]);
+}
+
+json_err('Method not allowed', 405);

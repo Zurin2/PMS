@@ -1,42 +1,67 @@
 <?php
-// =============================================================
-// PMS Inventory Tracking & Delivery Monitoring System
-// File: api/auth.php
-// Description: Authentication endpoint (login / logout / me)
-// =============================================================
+declare(strict_types=1);
+require_once __DIR__ . '/_bootstrap.php';
 
-require __DIR__ . '/_bootstrap.php';
+$method = $_SERVER['REQUEST_METHOD'];
 
-$action = $_GET['action'] ?? '';
-
-// POST api/auth.php?action=login
-if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $b = input();
-    need($b, ['username', 'password']);
-
-    $st = db()->prepare('SELECT user_id, password_hash FROM user_account WHERE username = ?');
-    $st->execute([$b['username']]);
-    $u = $st->fetch();
-
-    if (!$u || !password_verify($b['password'], $u['password_hash'])) {
-        respond(401, ['error' => 'Wrong username or password']);
+if ($method === 'POST') {
+    $b = body();
+    $username = str_param($b, 'username');
+    $password = str_param($b, 'password');
+    if ($username === '' || $password === '') {
+        json_err('Username and password are required', 400);
     }
 
-    session_regenerate_id(true);
-    $_SESSION['user_id'] = (int) $u['user_id'];
-    respond(200, ['ok' => true]);
+    $stmt = db()->prepare(
+        'SELECT user_id, username, password_hash, full_name
+           FROM user_account
+          WHERE username = ?'
+    );
+    $stmt->execute([$username]);
+    $user = $stmt->fetch();
+
+    if (!$user || !password_verify($password, $user['password_hash'])) {
+        json_err('Invalid credentials', 401);
+    }
+
+    $_SESSION['user_id'] = (int)$user['user_id'];
+    $_SESSION['username'] = (string)$user['username'];
+    $_SESSION['full_name'] = (string)$user['full_name'];
+
+    json_ok([
+        'user_id'   => (int)$user['user_id'],
+        'username'  => (string)$user['username'],
+        'full_name' => (string)$user['full_name'],
+    ]);
 }
 
-// GET/POST api/auth.php?action=logout
-if ($action === 'logout') {
-    session_destroy();
-    respond(200, ['ok' => true]);
+if ($method === 'GET') {
+    $action = str_param($_GET, 'action');
+
+    if ($action === 'me') {
+        if (empty($_SESSION['user_id'])) {
+            json_err('Authentication required', 401);
+        }
+        $stmt = db()->prepare('SELECT user_id, username, full_name FROM user_account WHERE user_id = ?');
+        $stmt->execute([(int)$_SESSION['user_id']]);
+        $user = $stmt->fetch();
+        if (!$user) {
+            json_err('Authentication required', 401);
+        }
+        json_ok([
+            'user_id'   => (int)$user['user_id'],
+            'username'  => (string)$user['username'],
+            'full_name' => (string)$user['full_name'],
+        ]);
+    }
+
+    if ($action === 'logout') {
+        $_SESSION = [];
+        session_destroy();
+        json_ok(['ok' => true]);
+    }
+
+    json_err('Unknown action', 400);
 }
 
-// GET api/auth.php?action=me
-if ($action === 'me') {
-    require_login();
-    respond(200, ['user_id' => $_SESSION['user_id']]);
-}
-
-respond(400, ['error' => 'Unknown action']);
+json_err('Method not allowed', 405);

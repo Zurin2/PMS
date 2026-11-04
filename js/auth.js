@@ -1,40 +1,40 @@
-// =============================================================
-// PMS Inventory Tracking & Delivery Monitoring System
-// File: js/auth.js
-// Description: Login form handler and session state helpers
-// =============================================================
+/* PMS — login page handler */
+const errBox = document.getElementById('authErr');
 
-/**
- * Attempt login. On success, redirects to the dashboard.
- * @param {string} username
- * @param {string} password
- */
-async function login(username, password) {
-    try {
-        await API.post('auth.php?action=login', { username, password });
-        location.href = 'index.html';
-    } catch (err) {
-        document.getElementById('login-error').textContent = err.message;
-    }
-}
+// Already signed in? Go straight to the dashboard.
+wb.get('auth.php?action=me')
+  .then(() => { location.href = 'dashboard.html'; })
+  .catch(() => {}); // not logged in: stay
 
-/**
- * Logout the current session and redirect to login page.
- */
-async function logout() {
-    await API.get('auth.php?action=logout');
-    location.href = 'login.html';
-}
+// Show / hide password toggle
+const pwInput = document.getElementById('password');
+document.getElementById('togglePw').addEventListener('click', (e) => {
+  const btn = e.currentTarget;
+  const show = pwInput.type === 'password';
+  pwInput.type = show ? 'text' : 'password';
+  btn.textContent = show ? '○' : '●';
+  btn.setAttribute('aria-pressed', String(show));
+  btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  btn.title = show ? 'Hide password' : 'Show password';
+  pwInput.focus();
+});
 
-// Wire up the login form if it exists on this page
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('login-form');
-    if (!form) return;
-
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = form.username.value.trim();
-        const password = form.password.value;
-        login(username, password);
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errBox.classList.remove('show');
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  try {
+    await wb.post('auth.php', {
+      username: document.getElementById('username').value.trim(),
+      password: document.getElementById('password').value
     });
+    location.href = 'dashboard.html';
+  } catch (ex) {
+    errBox.textContent = ex.message === 'Request failed (400)'
+      ? 'Invalid username or password.'
+      : ex.message;
+    errBox.classList.add('show');
+    btn.disabled = false;
+  }
 });

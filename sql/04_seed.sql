@@ -9,11 +9,9 @@ USE pms_inventory;
 -- Default item categories (safe to re-run: skips duplicates)
 INSERT IGNORE INTO category (name) VALUES ('School Supplies'), ('Office Supplies'), ('Janitorial Supplies');
 
--- Default owner account (CHANGE PASSWORD BEFORE PRODUCTION)
--- Password: 'changeme' hashed with password_hash() in PHP — replace with actual bcrypt hash
--- Run: php -r "echo password_hash('changeme', PASSWORD_DEFAULT);"
+-- Default owner account (Username: owner, Password: admin123)
 INSERT INTO user_account (user_id, username, password_hash, full_name)
-VALUES (1, 'owner', 'REPLACE WITH THE HASHED PASSWORD', 'System Owner')
+VALUES (1, 'owner', '$2y$10$NNvd5wks8n/hrzYKZaE6AeEbd7NQxa1roFeZsK6enB4h1fPeZWVbq', 'PMS Owner')
 ON DUPLICATE KEY UPDATE
     username      = VALUES(username),
     password_hash = VALUES(password_hash),

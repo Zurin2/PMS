@@ -1,48 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Items – PMS Inventory System</title>
-    <link rel="stylesheet" href="public/css/style.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMS — Items</title>
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-    <header class="topbar">
-        <h1>Inventory Items</h1>
-        <nav>
-            <a href="index.html">Dashboard</a>
-            <a href="items.html" class="active">Items</a>
-            <a href="stock_in.html">Stock In</a>
-            <a href="deliveries.html">Deliveries</a>
-            <a href="customers.html">Customers</a>
-            <a href="reports.html">Reports</a>
-            <button id="btn-logout" class="btn-link">Logout</button>
-        </nav>
-    </header>
-
-    <main>
-        <button class="btn-primary" id="btn-add-item">+ Add Item</button>
-        <table id="items">
-            <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Unit</th>
-                    <th>Unit Price</th>
-                    <th>Stock on Hand</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td colspan="8">Loading…</td></tr>
-            </tbody>
-        </table>
-    </main>
-
-    <script src="js/api.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/items.js"></script>
+  <div id="shell" data-page="items"></div>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/items.js"></script>
 </body>
 </html>

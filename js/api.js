@@ -1,38 +1,47 @@
-// =============================================================
-// PMS Inventory Tracking & Delivery Monitoring System
-// File: js/api.js
-// Description: Centralized fetch wrapper for all API calls
-//              Auto-redirects to login on 401 Unauthorized
-// =============================================================
+/* PMS — unified fetch client */
+const wb = {
+  base: 'api/',
 
-const API = {
-    /**
-     * Core fetch wrapper.
-     * @param {string} path   - API endpoint path (relative to api/)
-     * @param {string} method - HTTP method
-     * @param {object|null} body - Request payload (will be JSON-encoded)
-     * @returns {Promise<any>} Parsed JSON response
-     */
-    async call(path, method = 'GET', body = null) {
-        const res = await fetch('api/' + path, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: body ? JSON.stringify(body) : undefined,
-            credentials: 'same-origin'
-        });
+  _check(res) {
+    if (res.status === 401 && !location.pathname.includes('login.html')) {
+      location.href = 'login.html';
+      throw new Error('Session expired');
+    }
+    return res;
+  },
 
-        const data = await res.json().catch(() => ({}));
+  async _run(path, opts) {
+    const res = await fetch(this.base + path, opts);
+    this._check(res);
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch { data = null; }
+    if (!res.ok) {
+      const msg = (data && data.error) ? data.error : `Request failed (${res.status})`;
+      const err = new Error(msg);
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  },
 
-        if (res.status === 401) {
-            location.href = 'login.html';
-            return;
-        }
-        if (!res.ok) throw new Error(data.error || 'Request failed');
-        return data;
-    },
-
-    get:  (path)       => API.call(path),
-    post: (path, body) => API.call(path, 'POST', body),
-    put:  (path, body) => API.call(path, 'PUT', body),
-    del:  (path)       => API.call(path, 'DELETE'),
+  get(path) {
+    return this._run(path, { headers: { 'Accept': 'application/json' } });
+  },
+  post(path, json) {
+    return this._run(path, this._json(json, 'POST'));
+  },
+  put(path, json) {
+    return this._run(path, this._json(json, 'PUT'));
+  },
+  del(path) {
+    return this._run(path, { method: 'DELETE', headers: { 'Accept': 'application/json' } });
+  },
+  _json(json, method) {
+    return {
+      method,
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(json ?? {})
+    };
+  }
 };

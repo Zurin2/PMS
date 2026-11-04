@@ -1,61 +1,77 @@
 <?php
 declare(strict_types=1);
-// =============================================================
-// PMS Inventory Tracking & Delivery Monitoring System
-// File: api/_bootstrap.php
-// Description: Shared bootstrap for all API endpoints
-//              Starts session, sets JSON headers, loads DB
-// =============================================================
+require_once __DIR__ . '/../config/db.php';
 
-session_start();
-header('Content-Type: application/json; charset=utf-8');
-require __DIR__ . '/../config/db.php';
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_name('PMS_SESSION');
+    session_start();
+}
 
-/**
- * Emit a JSON response and terminate.
- */
-function respond(int $code, mixed $data): void {
+if (!headers_sent()) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+}
+
+/* ---------- JSON responders (shared contract) ---------- */
+
+function json_ok($data = null, int $code = 200)
+{
     http_response_code($code);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    echo json_encode($data ?? [], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-/**
- * Guard: abort with 401 if the user is not authenticated.
- */
-function require_login(): void {
+function json_err(string $message, int $code = 400, array $extra = [])
+{
+    http_response_code($code);
+    echo json_encode(['error' => $message] + $extra, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function require_login(): void
+{
     if (empty($_SESSION['user_id'])) {
-        respond(401, ['error' => 'Login required']);
+        json_err('Authentication required', 401);
     }
 }
 
-/**
- * Parse and return the JSON request body as an array.
- */
-function input(): array {
-    $d = json_decode(file_get_contents('php://input'), true);
-    return is_array($d) ? $d : [];
-}
+/* ---------- Input helpers ---------- */
 
-/**
- * Validate that required keys exist in $body and are non-empty.
- * Responds 422 immediately if any key is missing.
- */
-function need(array $body, array $keys): void {
-    foreach ($keys as $k) {
-        if (!isset($body[$k]) || $body[$k] === '') {
-            respond(422, ['error' => "Missing field: $k"]);
-        }
+function body(): array
+{
+    $raw = file_get_contents('php://input');
+    $json = json_decode($raw ?: '', true);
+    if (is_array($json)) {
+        return $json;
     }
+    return $_POST;
+}
+
+function int_param(array $src, string $key, int $default = 0): int
+{
+    $v = $src[$key] ?? $default;
+    return ($v === '' || $v === null) ? $default : (int)$v;
+}
+
+function str_param(array $src, string $key, string $default = ''): string
+{
+    $v = $src[$key] ?? $default;
+    return trim((string)$v);
 }
 
 /**
- * Translate PDOException to a safe HTTP error response.
- * Handles trigger violations (45000) and constraint violations (23000).
+ * Convert a thrown PDOException into the right HTTP status:
+ *  - SQLSTATE 45000 = SIGNAL from business-rule triggers  -> 409
+ *  - SQLSTATE 23000 = integrity constraint (UNIQUE/FK)    -> 409
+ *  - everything else                                       -> 500
  */
-function fail(PDOException $e): void {
-    $state = $e->errorInfo[0] ?? '';
-    if ($state === '45000') respond(409, ['error' => $e->errorInfo[2]]);   // custom trigger rule
-    if ($state === '23000') respond(409, ['error' => 'Rule violated: duplicate or still referenced']);
-    respond(500, ['error' => 'Database error']);
-}
+set_exception_handler(function (Throwable $e): void {
+    $msg = $e->getMessage();
+    $sqlstate = ($e instanceof PDOException) ? substr($msg, 9, 5) : '';
+    $code = match (true) {
+        $sqlstate === '45000' => 409,
+        $sqlstate === '23000' => 409,
+        default               => 500,
+    };
+    json_err($msg, $code);
+});
