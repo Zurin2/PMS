@@ -328,14 +328,116 @@ input:focus, select:focus, textarea:focus {
   .card { border: 0; box-shadow: none; border-radius: 0; }
 }
 
-/* ---------- Responsive ---------- */
+/* ---------- Responsive (Web | Tablet | Mobile) ---------- */
+/* ≥901px: persistent sidebar.  ≤900px: off-canvas drawer + burger.      */
+/* ≤640px: touch sizes, stacked forms, sheet modals. ≤420px: small phones */
+
+.burger { display: none; }
+
 @media (max-width: 900px) {
+  .burger {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; flex: none;
+    border: 1px solid var(--line-strong); border-radius: 7px;
+    background: var(--surface); color: var(--ink); cursor: pointer;
+    transition: background-color .14s ease, border-color .14s ease, transform .08s ease;
+  }
+  .burger:hover { background: #f3f4f6; }
+  .burger:active { transform: scale(.97); }
+  .burger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
   .app { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: static; flex-direction: row; flex-wrap: wrap; align-items: center; }
-  .sidebar .nav { display: flex; flex-wrap: wrap; padding: 6px; }
-  .nav-group { display: none; }
-  .nav a { padding: 7px 10px; }
-  .sidebar .user-strip { border-top: 0; margin-left: auto; }
+
+  /* Off-canvas drawer: full-height sidebar slides in from the left */
+  .sidebar {
+    position: fixed; top: 0; bottom: 0; left: 0;
+    width: min(84vw, 292px); height: 100dvh;
+    transform: translateX(-104%);
+    transition: transform .2s ease-out;
+    z-index: 120; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar .brand {
+    display: block; padding: 18px 16px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .nav {
+    display: flex; flex-direction: column; overflow-y: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-group { display: block; }                 /* group labels return in the drawer */
+  .nav a { white-space: nowrap; min-height: 44px; padding: 10px 14px; }
+
+  .sb-backdrop {
+    position: fixed; inset: 0; z-index: 110;
+    background: rgba(13, 18, 16, .45);
+    opacity: 0; pointer-events: none;
+    transition: opacity .18s ease-out;
+  }
+  body.sb-open .sb-backdrop { opacity: 1; pointer-events: auto; }
+  body.sb-open .sidebar { transform: none; }
+  body.sb-open { overflow: hidden; }
+
+  .content { padding: 16px 18px 26px; }
   .form-grid { grid-template-columns: 1fr; }
   .form-grid .span2 { grid-column: span 1; }
+  .inline-form .col, .inline-form .col.narrow { width: auto !important; flex: 1 1 150px; } /* !important defeats inline styles in page JS */
+  .modal-backdrop { padding: 5vh 14px 14px; }
+  .tablewrap { -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+}
+
+/* Tier 2 — mobile: bigger targets, tighter chrome, flows stack */
+@media (max-width: 640px) {
+  body { -webkit-tap-highlight-color: transparent; }
+  .content { padding: 13px 12px 22px; }
+  .topbar { height: auto; padding: 9px 12px; gap: 8px; flex-wrap: wrap; }
+  .topbar .page-title { font-size: 15px; }
+  .topbar .page-hint { display: none; }
+
+  .nav a { padding: 10px 14px; min-height: 44px; }          /* 44px touch target */
+  .sidebar .user-strip { padding: 8px 14px; }
+  .sidebar .user-strip .who { max-width: 46vw; }
+
+  .card { border-radius: 10px; }
+  .card-head, .card-body { padding-left: 13px; padding-right: 13px; }
+  .card-head { gap: 8px; }
+  .toolbar { padding: 10px 12px; gap: 7px; }
+
+  table.grid { font-size: 13px; }
+  table.grid td, table.grid th { padding: 9px 10px; }
+
+  .kpi { padding: 12px 13px; }
+  .kpi .kpi-value { font-size: 21px; }
+
+  /* Restrict table scroll to its tray, keep the header readable */
+  .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+
+  /* Inputs at 16px prevent iOS focus auto-zoom */
+  input[type=text], input[type=number], input[type=date], input[type=password],
+  input[type=search], input[type=email], select, textarea { font-size: 16px; }
+
+  /* Toasts span the width on small screens */
+  #toast-zone { left: 12px; right: 12px; bottom: 12px; }
+  .toast { max-width: none; }
+
+  /* Modals become bottom sheets on phones */
+  .modal-backdrop { padding: 0 10px 10px; align-items: flex-end; }
+  .modal { width: 100%; max-height: 88vh; border-radius: 14px; }
+  .modal.wide { width: 100%; }
+  .modal-foot { position: sticky; bottom: 0; background: var(--surface); }
+  .modal-foot .btn { flex: 1; }
+
+  .auth-card { padding: 22px 18px 18px; width: 340px; }
+  .btn { min-height: 38px; }
+  .btn.sm { min-height: 0; }
+}
+
+/* Tier 3 — small phones */
+@media (max-width: 420px) {
+  .content { padding: 11px 10px 20px; }
+  .kpi-grid { gap: 9px; }
+  .meta-grid { grid-template-columns: 1fr; gap: 8px 0; }
+  .modal-head, .modal-body, .modal-foot { padding-left: 13px; padding-right: 13px; }
+  .modal-foot { flex-direction: column-reverse; }
 }

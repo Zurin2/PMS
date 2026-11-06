@@ -60,7 +60,7 @@ exception handler mapping SQLSTATE 45000/23000 -> HTTP 409).
 
 ### api/payments.php
 - `GET` -> list joined receipt_no + customer name. Filters: `?delivery_id=`, `?customer_id=`, `?from=`, `?to=`. Order payment_date DESC, payment_id DESC.
-- `POST` body `{delivery_id, amount, payment_date, method: CASH|CHECK|BANK TRANSFER|OTHER, reference_no?, remarks?}` -> validate: delivery exists, delivery status='DELIVERED', amount > 0 and <= balance (from `v_delivery_balance`, else trigger `trg_payment_no_overpay` SIGNAL 45000 -> rollback -> 409). 201 `{payment_id}`.
+- `POST` body `{delivery_id, amount, payment_date, method: CASH|CHECK|BANK TRANSFER|OTHER, reference_no?, remarks?}` -> PHP validates shape (400s), then delegates to the transactional stored procedure `sp_record_delivery_payment` (`FOR UPDATE` row lock + validation inside the transaction; `trg_payment_no_overpay` remains the backstop). SQLSTATE 45000 SIGNALs from the procedure map to 409 with the exact reason (`Delivery not found`, `Delivery is not DELIVERED`, `Payment exceeds the delivery balance`). 201 `{payment_id, remaining_balance}`.
 
 ### api/adjustments.php
 - `GET` -> list joined item code/name: `{adjustment_id, item_id, item_code, name, adjust_date, system_qty, counted_qty, variance, reason}`. Order adjust_date DESC. Optional `?item_id=`, `?from=`, `?to=`.
@@ -84,7 +84,7 @@ exception handler mapping SQLSTATE 45000/23000 -> HTTP 409).
 - `GET ?report=revenue&from=&to=` -> monthly rows `{ym (YYYY-MM), revenue, collected, deliveries_count}` ordered by month (phase 1 of period to the end).
 
 ### api/receipt.php (PDF via print CSS)
-- `GET ?id=N` (requires login session cookie; browser navigates here) -> renders a full standalone HTML page (NOT JSON): `Content-Type: text/html`, the printable delivery receipt using `receipt.html`-style markup + its own inline `<style>` + print CSS (`@media print` hides chrome, `@page { size: A4; margin: 15mm }`). Header shows company name "ADS PMS TRADING", receipt_no, customer block (name/address/contacts, subtype reviewer), item table (qty, unit, item, description, unit price, line total), totals, payments applied, balance, prepared-by footer with `window.addEventListener('load', () => window.print())` and a "Back" link button (hidden in print). 404 if missing; 401 if no session.
+- `GET ?id=N` (requires login session cookie; browser navigates here) -> renders a full standalone HTML page (NOT JSON): `Content-Type: text/html`, the printable delivery receipt using `receipt.html`-style markup + its own inline `<style>` + print CSS (`@media print` hides chrome, `@page { size: A4; margin: 15mm }`). Header shows company name "PMS TRADING", receipt_no, customer block (name/address/contacts, subtype reviewer), item table (qty, unit, item, description, unit price, line total), totals, payments applied, balance, prepared-by footer with `window.addEventListener('load', () => window.print())` and a "Back" link button (hidden in print). 404 if missing; 401 if no session.
 
 ## Frontend contract (already written files you MUST reuse)
 

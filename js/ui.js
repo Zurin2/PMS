@@ -102,7 +102,7 @@ const UI = (() => {
       <div class="app">
         <aside class="sidebar">
           <div class="brand">
-            <div class="brand-name">ADS PMS Trading</div>
+            <div class="brand-name">PMS Trading</div>
             <div class="brand-sub">Inventory &amp; Delivery</div>
           </div>
           <nav class="nav" aria-label="Main">${links}</nav>
@@ -111,8 +111,12 @@ const UI = (() => {
             <button class="link-ghost" id="logout" type="button">Logout</button>
           </div>
         </aside>
+        <div class="sb-backdrop" id="sb-backdrop" aria-hidden="true"></div>
         <main class="main">
           <header class="topbar">
+            <button class="burger" id="burger" type="button" aria-label="Open menu" aria-expanded="false">
+              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
             <h1 class="page-title">${esc(title ?? page)}</h1>
             <span class="spacer"></span>
             ${hint ? `<span class="page-hint">${esc(hint)}</span>` : ''}
@@ -125,6 +129,24 @@ const UI = (() => {
       try { await wb.get('auth.php?action=logout'); } catch {}
       location.href = 'login.html';
     });
+
+    /* Drawer (mobile/tablet): burger opens the sidebar, backdrop/Escape/link-tap closes it */
+    const burger = document.getElementById('burger');
+    const backdrop = document.getElementById('sb-backdrop');
+    const setDrawer = (open) => {
+      document.body.classList.toggle('sb-open', open);
+      burger?.setAttribute('aria-expanded', String(open));
+    };
+    burger?.addEventListener('click', () => setDrawer(!document.body.classList.contains('sb-open')));
+    backdrop?.addEventListener('click', () => setDrawer(false));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setDrawer(false); });
+    document.querySelectorAll('.sidebar .nav a').forEach((a) => a.addEventListener('click', () => setDrawer(false)));
+    const mqDrawer = window.matchMedia('(max-width: 900px)');
+    if (mqDrawer.addEventListener) {
+      mqDrawer.addEventListener('change', (e) => { if (!e.matches) setDrawer(false); });
+    } else if (mqDrawer.addListener) {
+      mqDrawer.addListener((e) => { if (!e.matches) setDrawer(false); });
+    }
   }
 
   /* Session guard + owner name rendering */

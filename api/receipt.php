@@ -205,7 +205,7 @@ header('Content-Type: text/html; charset=utf-8');
 <div class="sheet">
   <div class="r-head">
     <div>
-      <div class="r-company">ADS PMS TRADING</div>
+      <div class="r-company">PMS TRADING</div>
       <div class="r-tagline">School &amp; Office Supplies Trading</div>
     </div>
     <div class="r-meta">

@@ -4,7 +4,9 @@ declare(strict_types=1);
 // PMS Inventory Tracking & Delivery Monitoring System
 // File: api/payments.php
 // Description: Payment records endpoint. POST validates amount
-// against v_delivery_balance (trg_payment_no_overpay = backstop).
+// against v_delivery_balance then delegates to the transactional
+// stored procedure sp_record_delivery_payment (FOR UPDATE row lock
+// + SIGNAL validation); trg_payment_no_overpay remains the backstop.
 // =============================================================
 
 require_once __DIR__ . '/_bootstrap.php';
@@ -87,28 +89,27 @@ if ($method === 'POST') {
     }
     $amount = (float)$amountRaw;
 
-    $st = $pdo->prepare(
-        'SELECT status, balance FROM v_delivery_balance WHERE delivery_id = ?'
-    );
-    $st->execute([$delivery_id]);
-    $del = $st->fetch();
-    if ($del === false) {
-        json_err('Delivery not found', 404);
-    }
-    if ($del['status'] !== 'DELIVERED') {
-        json_err('Delivery is not DELIVERED', 409);
-    }
-    if ($amount > (float)$del['balance']) {
-        json_err('Payment exceeds balance', 409);
-    }
+    // Pre-flight validation (cheap checks, clean HTTP codes), then the
+    // authoritative atomic path: sp_record_delivery_payment closes the
+    // read-then-insert race that two plain queries (or concurrent POSTs)
+    // could hit — the delivery row is locked FOR UPDATE inside the SP.
+    try {
+        $st = $pdo->prepare('CALL sp_record_delivery_payment(?, ?, ?, ?, ?, ?)');
+        $st->execute([$delivery_id, $payment_date, $amount, $method_pay, $reference_no ?: null, $remarks ?: null]);
+        $res = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+        $st->closeCursor();
 
-    $ins = $pdo->prepare(
-        'INSERT INTO payment (delivery_id, payment_date, amount, method, reference_no, remarks)
-         VALUES (?, ?, ?, ?, ?, ?)'
-    );
-    $ins->execute([$delivery_id, $payment_date, $amount, $method_pay, $reference_no ?: null, $remarks ?: null]);
-
-    json_ok(['payment_id' => (int)$pdo->lastInsertId()], 201);
+        json_ok([
+            'payment_id'        => (int)($res['payment_id'] ?? 0),
+            'remaining_balance' => (float)($res['remaining_balance'] ?? 0.0),
+        ], 201);
+    } catch (PDOException $e) {
+        if (($e->errorInfo[0] ?? '') === '45000') {
+            // SIGNAL raised inside the procedure (and rolled back)
+            json_err($e->getMessage(), 409);
+        }
+        throw $e;
+    }
 }
 
 json_err('Method not allowed', 405);
