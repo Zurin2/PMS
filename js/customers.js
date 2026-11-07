@@ -44,7 +44,6 @@
   async function load() {
     const p = new URLSearchParams();
     if (typeEl.value) p.set('type', typeEl.value);
-    if (searchEl.value.trim()) p.set('search', searchEl.value.trim());
     const q = p.toString();
     try {
       const r = await wb.get('customers.php' + (q ? '?' + q : ''));
@@ -77,6 +76,8 @@
       </tr>`;
     }).join('');
   }
+
+  UI.addSearch(searchEl, tbody);
 
   /* ---- Add / Edit modal ---- */
   function contactRow(type = 'MOBILE', value = '') {

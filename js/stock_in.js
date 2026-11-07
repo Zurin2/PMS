@@ -32,6 +32,8 @@
         <span style="flex:1"></span>
         <button class="btn primary" id="s-save" type="submit">Record Receipt</button>
       </form>
+      <div class="card-head"><h2>Receipt log</h2><span class="grow"></span>
+        <input type="search" id="r-search" placeholder="Search receipts…"></div>
       <div class="tablewrap">
         <table class="grid">
           <thead>
@@ -45,6 +47,7 @@
     </div>`;
 
   const $ = (id) => document.getElementById(id);
+  UI.addSearch('r-search', $('r-tbody'));
 
   /* ---------- data (item list is cached; only receipts refresh) ---------- */
   const itemById = new Map();

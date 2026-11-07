@@ -69,7 +69,6 @@
 
   /* ---------- rendering ---------- */
   function render() {
-    const q = $('f-search').value.trim().toLowerCase();
     const cat = $('f-cat').value;
     const status = $('f-status').value;
     const lowOnly = $('f-low').checked;
@@ -77,10 +76,7 @@
     const rows = state.items.filter(it =>
       (!cat || String(it.category) === cat) &&
       (!status || it.status === status) &&
-      (!lowOnly || Number(it.stock_on_hand) <= Number(it.low_stock_level)) &&
-      (!q ||
-        String(it.item_code || '').toLowerCase().includes(q) ||
-        String(it.name || '').toLowerCase().includes(q))
+      (!lowOnly || Number(it.stock_on_hand) <= Number(it.low_stock_level))
     );
 
     $('i-tbody').innerHTML = rows.length ? rows.map(it => `<tr>
@@ -102,7 +98,8 @@
   }
 
   /* ---------- filters ---------- */
-  $('f-search').addEventListener('input', render);
+  UI.addSearch($('f-search'), $('i-tbody'));
+  $('f-cat').addEventListener('change', render);
   $('f-cat').addEventListener('change', render);
   $('f-status').addEventListener('change', render);
   $('f-low').addEventListener('change', render);
@@ -160,7 +157,13 @@
         <button class="btn primary" type="submit" form="item-form" id="f-save">Save</button>`
     });
 
-    if (!create) $('f-category').value = String(item.category_id ?? '');
+    if (!create) {
+      /* List payload may carry only the category name (no id) — resolve
+         against state.cats first, then fall back to a text match. */
+      const catId = item.category_id
+        ?? (state.cats.find(c => c.name === item.category) || {}).category_id;
+      UI.setSelectValue($('f-category'), catId, item.category);
+    }
 
     m.el.querySelector('[data-act="cancel"]').onclick = () => m.close();
 

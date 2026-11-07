@@ -27,6 +27,12 @@
           <input type="checkbox" id="dvUnpaid"> Unpaid only</label>
         <div class="col"><label class="fl" for="dvFrom">From</label><input type="date" id="dvFrom"></div>
         <div class="col"><label class="fl" for="dvTo">To</label><input type="date" id="dvTo"></div>
+        <div style="flex:1;min-width:200px">
+          <label class="fl" for="dvSearch">Search</label>
+          <input type="search" id="dvSearch" placeholder="Receipt, customer, PO/ref…">
+        </div>
+        <span style="flex:1"></span>
+        <a class="btn primary" href="delivery_new.html" style="margin-bottom:9px">+ New Delivery</a>
       </div>
       <div class="card-body flush"><div class="tablewrap">
         <table class="grid">
@@ -46,6 +52,7 @@
   const frEl = document.getElementById('dvFrom');
   const toEl = document.getElementById('dvTo');
   const tbody = document.getElementById('dvRows');
+  UI.addSearch('dvSearch', tbody);
   let list = [];
 
   const custName = (d) => d.customer_name ?? d.name ?? '—';

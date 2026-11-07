@@ -1,6 +1,43 @@
 # PMS Trading Inventory System — Change Log
 
+## 2026-11-07 — Dashboard KPI/analytics pass, physical-count fix, UX entry-point fixes
+
+Four fixes applied via parallel subagent tasks. Full smoke suite re-verified **24/24** after the batch.
+
+### Changed files
+
+| File | Change |
+| :--- | :--- |
+| `api/dashboard.php` | Added metrics: `inventory_valuation` / `stock_on_hand_units` (from `v_item_stock`), `revenue_this_month` (monthly slice of the existing YTD definition), plus two analytics queries: `revenue_trend` (last 6 calendar months from `v_delivery_balance`, gaps zero-filled) and `top_items` (top 5 by outgoing qty, last 90 days, from `v_stock_movement`). |
+| `js/dashboard.js` | KPI strip expanded to 9 cards (Valuation, Total Items, Stock On Hand, Low Stock, Rev YTD, Rev This Month, Collected YTD, Outstanding, Deliveries YTD); added pure-CSS 6-month revenue bar chart and Top-Items table widget. Existing cards untouched. |
+| `css/app.css` | Small additions: `.kpi.warn`, `.bars/.bar/*` chart classes using existing tokens only. `@media print` untouched. |
+| `dashboard.html` | CSS cache-bust `?v=4`. |
+| `js/ui.js` | New `UI.setSelectValue(el, val, fallbackText)` — type-safe select preselect helper (`String()` comparison + option-text fallback). New `UI.addSearch(input, tbody)` — generic client-side table search box helper: case-insensitive row filter on cell text, re-applied automatically after re-renders via a MutationObserver. |
+| `js/items.js` | Edit-item path resolves `category_id` from `item.category` via `state.cats` + `UI.setSelectValue` — fixes "category left blank when editing". Search box wired to the items table. |
+| `js/customers.js`, `js/deliveries.js`, `js/payments.js`, `js/stock_in.js`, `js/stock_card.js`, `js/count.js` | Search box added to each list section's toolbar (pure client-side filtering; no API changes). |
+| `sql/01_schema.sql` | `stock_adjustment.counted_qty` → `INT NOT NULL` (was `INT UNSIGNED`). Unsigned blocked legitimate negative variance during audits. Live DB altered (`ALTER TABLE`, 8 rows preserved). |
+| `sql/03_triggers.sql` | `trg_si_delete_guard` now uses `CAST(OLD.quantity AS SIGNED)` so the intended 45000 signal fires instead of a masked 1690 unsigned overflow. (Re-applied idempotently; 10 triggers live.) |
+| `js/deliveries.js` | Added prominent `+ New Delivery` primary button (→ `delivery_new.html`) to the deliveries log toolbar — creation was previously reachable only via a quick-link on the Dashboard. |
+
+### Verification
+
+| Check | Result |
+| :--- | :--- |
+| `php -l` on all changed PHP files | Clean |
+| Authenticated curl to `api/dashboard.php` | New keys live on seeded data (`inventory_valuation=235905`, `stock_on_hand_units=5534`, 6-month trend, top-5 items) |
+| Authenticated curl to `api/items.php` / `api/categories.php` | Confirmed list payload has no `category_id` (only `category` name) — root cause of the blank select |
+| Negative variance adjustment (counted < system) | PASS — no more `SQLSTATE[22003] / 1690`; audit row records negative `qty_delta` with correct `balance_after`; test rows rolled back |
+| Positive variance adjustment | PASS |
+| `php scripts/verify.php` | 10 PASS / 1 WARN (pre-existing `receipt.html` spec mismatch only) |
+| `scripts/smoke.ps1` | **24 passed / 0 failed** (re-run after the search-box pass: still 24/24) |
+| All 7 searchable pages via `php -S` | `items`, `customers`, `deliveries`, `payments`, `stock_in`, `stock_card`, `count` → HTTP 200; JS parse checks clean |
+
+### Notes
+- Audit-trigger hardening and the `sp_record_delivery_payment` changes from 2026-11-06 remain in force; `trg_sa_audit` already used `CAST(... AS SIGNED)` on disk and live.
+- Docs updated in the same pass: `API_SPEC.md` (dashboard response keys) and the vault testing playbook (Feature 02 KPI list).
+
 ## 2026-11-06 — SQL Lab optimization pass (Views, Triggers, Stored Procedures)
+
 
 Applied the learnings from the Advanced Database Systems lesson note
 **"SQL Lab: Views, Triggers, and Transactions (PMS Integration)"** (vault, dated 2026-11-05)

@@ -167,8 +167,44 @@ const UI = (() => {
   const emptyRow = (cols, msg = 'Nothing here yet.') =>
     `<tr class="empty-row"><td colspan="${cols}">${esc(msg)}</td></tr>`;
 
+  /* Preselect a <select> generically: type-safe match on option value
+     (id may arrive as number while option values are strings), with an
+     optional fallback match on the option's text (e.g. category name). */
+  function setSelectValue(el, val, fallbackText) {
+    if (!el) return;
+    const want = String(val ?? '');
+    if (want !== '' && [...el.options].some(o => String(o.value) === want)) {
+      el.value = want;
+      return;
+    }
+    if (fallbackText) {
+      const hit = [...el.options].find(o => o.text === fallbackText);
+      if (hit) { el.value = hit.value; return; }
+    }
+    el.selectedIndex = el.selectedIndex >= 0 ? el.selectedIndex : 0;
+  }
+
+  /* addSearch(input, tbody): generic row filter on visible cell text.
+     Case-insensitive + trimmed; empty query shows all rows; empty-state
+     rows stay hidden while a query is active. A MutationObserver re-applies
+     the query after render()/load() replaces rows, so the wiring survives
+     table re-renders with no per-render calls. */
+  function addSearch(input, tbody) {
+    const box = typeof input === 'string' ? document.getElementById(input) : input;
+    const body = typeof tbody === 'string' ? document.getElementById(tbody) : tbody;
+    if (!box || !body) return;
+    const apply = () => {
+      const q = box.value.trim().toLowerCase();
+      for (const tr of body.rows)
+        tr.hidden = !!q && (tr.classList.contains('empty-row') ||
+          !tr.textContent.toLowerCase().includes(q));
+    };
+    box.addEventListener('input', apply);
+    new MutationObserver(apply).observe(body, { childList: true });
+  }
+
   return {
     esc, money, qty, date, badge, statusTone, typeTone,
-    toast, confirm, modal, shell, guard, emptyRow
+    toast, confirm, modal, shell, guard, emptyRow, setSelectValue, addSearch
   };
 })();

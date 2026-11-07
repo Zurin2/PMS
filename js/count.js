@@ -37,7 +37,8 @@
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Recent adjustments</h2></div>
+      <div class="card-head"><h2>Recent adjustments</h2><span class="grow"></span>
+        <input type="search" id="ctSearch" placeholder="Search adjustments…"></div>
       <div class="card-body flush"><div class="tablewrap">
         <table class="grid">
           <thead><tr>
@@ -58,6 +59,7 @@
   const reasonEl = document.getElementById('ctReason');
   const submitBtn = document.getElementById('ctSubmit');
   const tbody = document.getElementById('ctRows');
+  UI.addSearch('ctSearch', tbody);
 
   let items = [];
   const itemsById = new Map();

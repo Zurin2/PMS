@@ -22,7 +22,9 @@
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Ledger</h2><span class="grow"></span><span class="hint">IN → OUT → ADJ order within a date</span></div>
+      <div class="card-head"><h2>Ledger</h2>
+        <input type="search" id="scSearch" placeholder="Filter ledger rows…" style="max-width:220px">
+        <span class="grow"></span><span class="hint">IN → OUT → ADJ order within a date</span></div>
       <div class="card-body flush"><div class="tablewrap">
         <table class="grid">
           <thead><tr>
@@ -40,6 +42,7 @@
   const metaCard = document.getElementById('scMetaCard');
   const meta = document.getElementById('scMeta');
   const rowsEl = document.getElementById('scRows');
+  UI.addSearch('scSearch', rowsEl);
   const showBtn = document.getElementById('scShow');
 
   const mv = (l, v) => `<div><div class="lbl">${l}</div><div class="val">${UI.esc(v)}</div></div>`;

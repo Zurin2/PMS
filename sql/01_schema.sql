@@ -66,7 +66,7 @@ CREATE TABLE stock_adjustment (
     item_id INT UNSIGNED NOT NULL,
     adjust_date DATE NOT NULL,
     system_qty INT NOT NULL,
-    counted_qty INT UNSIGNED NOT NULL,
+    counted_qty INT NOT NULL,
     reason VARCHAR(255) NULL,
     KEY idx_sa_item_date (item_id, adjust_date),
     CONSTRAINT fk_sa_item FOREIGN KEY (item_id) REFERENCES item(item_id)

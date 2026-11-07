@@ -25,7 +25,7 @@ CREATE TRIGGER trg_si_delete_guard BEFORE DELETE ON stock_in FOR EACH ROW
 BEGIN
     DECLARE soh INT;
     SELECT stock_on_hand INTO soh FROM v_item_stock WHERE item_id = OLD.item_id;
-    IF soh - OLD.quantity < 0 THEN
+    IF soh - CAST(OLD.quantity AS SIGNED) < 0 THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot delete: stock would go negative';
     END IF;
 END$$

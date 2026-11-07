@@ -43,7 +43,8 @@
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Payment history</h2></div>
+      <div class="card-head"><h2>Payment history</h2><span class="grow"></span>
+        <input type="search" id="pmSearch" placeholder="Search history…"></div>
       <div class="card-body flush"><div class="tablewrap">
         <table class="grid">
           <thead><tr>
@@ -65,6 +66,7 @@
   const remEl = document.getElementById('pmRemarks');
   const submitBtn = document.getElementById('pmSubmit');
   const tbody = document.getElementById('pmRows');
+  UI.addSearch('pmSearch', tbody);
 
   let unpaid = [];
 

@@ -67,7 +67,11 @@ exception handler mapping SQLSTATE 45000/23000 -> HTTP 409).
 - `POST` body `{item_id, counted_quantity, adjust_date, reason?}` -> look up current `stock_on_hand` from `v_item_stock`; insert `stock_adjustment` with `system_qty` = that value, `counted_qty` = counted_quantity. 201.
 
 ### api/dashboard.php
-- `GET` -> `{revenue_total_ytd, collected_ytd, outstanding, item_count, active_items, low_stock_items, deliveries_this_year, schools, offices}` and `low_stock` array (from `v_item_stock` where status='ACTIVE' AND stock_on_hand <= low_stock_level, ORDER BY stock_on_hand ASC, limit 50).
+- `GET` -> `{revenue_total_ytd, collected_ytd, outstanding, item_count, active_items, low_stock_items, deliveries_this_year, schools, offices, inventory_valuation, stock_on_hand_units, revenue_this_month, revenue_trend, top_items}` and `low_stock` array (from `v_item_stock` where status='ACTIVE' AND stock_on_hand <= low_stock_level, ORDER BY stock_on_hand ASC, limit 50).
+  - inventory_valuation = SUM(stock_on_hand * unit_price) via `v_item_stock`; stock_on_hand_units = SUM(stock_on_hand).
+  - revenue_this_month = same revenue definition sliced to CURDATE() month.
+  - revenue_trend = last 6 calendar months `{ym, revenue, deliveries}` (DELIVERED only, gaps zero-filled in PHP).
+  - top_items = top 5 `{name, qty_out}` by outgoing quantity over the last 90 days via `v_stock_movement`.
   - revenue = total_amount on month/year of YEAR(CURDATE()) via `v_delivery_balance` where status='DELIVERED' and YEAR(delivery_date) = {year}.
   - collected = SUM(amount) via `payment` where YEAR(payment_date) = {year}.
   - outstanding = SUM(balance where balance > 0 and status='DELIVERED') from `v_delivery_balance`.
