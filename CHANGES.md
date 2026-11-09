@@ -23,8 +23,7 @@ Four fixes applied via parallel subagent tasks. Full smoke suite re-verified **2
 
 | Check | Result |
 | :--- | :--- |
-| `php -l` on all changed PHP files | Clean |
-| Authenticated curl to `api/dashboard.php` | New keys live on seeded data (`inventory_valuation=235905`, `stock_on_hand_units=5534`, 6-month trend, top-5 items) |
+| `php -l` on all changed PHP files | Clean || Authenticated curl to `api/dashboard.php` | New keys live on seeded data (`inventory_valuation=235905`, `stock_on_hand_units=5534`, 6-month trend, top-5 items) |
 | Authenticated curl to `api/items.php` / `api/categories.php` | Confirmed list payload has no `category_id` (only `category` name) — root cause of the blank select |
 | Negative variance adjustment (counted < system) | PASS — no more `SQLSTATE[22003] / 1690`; audit row records negative `qty_delta` with correct `balance_after`; test rows rolled back |
 | Positive variance adjustment | PASS |
@@ -35,6 +34,7 @@ Four fixes applied via parallel subagent tasks. Full smoke suite re-verified **2
 ### Notes
 - Audit-trigger hardening and the `sp_record_delivery_payment` changes from 2026-11-06 remain in force; `trg_sa_audit` already used `CAST(... AS SIGNED)` on disk and live.
 - Docs updated in the same pass: `API_SPEC.md` (dashboard response keys) and the vault testing playbook (Feature 02 KPI list).
+- 2026-11-09: `API_SPEC.md` fully rewritten for readability — plain-English explanations, mermaid flow diagrams (login, stock life-cycle, delivery all-or-nothing, race-proof payments, delete-vs-archive), human-word status-code table, and a per-endpoint ask→get reference. No behavioral facts changed (24/24 smoke baseline unaffected).
 
 ## 2026-11-06 — SQL Lab optimization pass (Views, Triggers, Stored Procedures)
 
