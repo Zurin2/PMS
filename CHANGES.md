@@ -35,6 +35,7 @@ Four fixes applied via parallel subagent tasks. Full smoke suite re-verified **2
 - Audit-trigger hardening and the `sp_record_delivery_payment` changes from 2026-11-06 remain in force; `trg_sa_audit` already used `CAST(... AS SIGNED)` on disk and live.
 - Docs updated in the same pass: `API_SPEC.md` (dashboard response keys) and the vault testing playbook (Feature 02 KPI list).
 - 2026-11-09: `API_SPEC.md` fully rewritten for readability — plain-English explanations, mermaid flow diagrams (login, stock life-cycle, delivery all-or-nothing, race-proof payments, delete-vs-archive), human-word status-code table, and a per-endpoint ask→get reference. No behavioral facts changed (24/24 smoke baseline unaffected).
+- 2026-11-10: Added a 🎤 presenter script to the end of every flow section and endpoint block (plain-language narration naming each file and where the data proceeds next). Fixed §4.3 mermaid render error (malformed quoted label — `(history preserved)` was outside the closing quote).
 
 ## 2026-11-06 — SQL Lab optimization pass (Views, Triggers, Stored Procedures)
 
