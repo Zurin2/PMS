@@ -36,6 +36,7 @@ Four fixes applied via parallel subagent tasks. Full smoke suite re-verified **2
 - Docs updated in the same pass: `API_SPEC.md` (dashboard response keys) and the vault testing playbook (Feature 02 KPI list).
 - 2026-11-09: `API_SPEC.md` fully rewritten for readability — plain-English explanations, mermaid flow diagrams (login, stock life-cycle, delivery all-or-nothing, race-proof payments, delete-vs-archive), human-word status-code table, and a per-endpoint ask→get reference. No behavioral facts changed (24/24 smoke baseline unaffected).
 - 2026-11-10: Added a 🎤 presenter script to the end of every flow section and endpoint block (plain-language narration naming each file and where the data proceeds next). Fixed §4.3 mermaid render error (malformed quoted label — `(history preserved)` was outside the closing quote).
+- 2026-11-10: New `CODE_FLOW.md` — Process 1→6 walkthrough pairing API_SPEC flows with the exact implementing code (mirrored to the vault as `…Code Flow Walkthrough (Process 1 → 6).md`).
 
 ## 2026-11-06 — SQL Lab optimization pass (Views, Triggers, Stored Procedures)
 
